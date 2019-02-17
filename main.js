@@ -27,9 +27,9 @@ const readDir = (pathDir) => {
 
     if (state.isFile()) {
       /** путь создаваемой папки по первой букве имени */
-      let dirName = path.join(pathCollectionDir, file[0]);
+      let dirName = path.join(pathCollectionDir, file[0].toUpperCase());
       /** путь копируемого файла по первой букве имени */
-      let fileName = path.join(pathCollectionDir, file[0], file);
+      let fileName = path.join(pathCollectionDir, file[0].toUpperCase(), file);
 
       if (!fs.existsSync(dirName)) {
         fs.mkdirSync(dirName);
@@ -44,12 +44,6 @@ const readDir = (pathDir) => {
   }
 };
 
-/** выводит сообщение об ошибке */
-const outError = (err) => {
-  if (err) {
-    console.log(err.message);
-  }
-};
 /** удаляет папку */
 const removeDir = (path) => {
   fs.rmdirSync(path);
