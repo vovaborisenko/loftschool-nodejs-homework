@@ -6,13 +6,15 @@ const pathBaseDir = args[0] || path.join(__dirname, 'green.2');
 /** путь папки, где будут лежать файлы */
 const pathCollectionDir = args[1] || path.join(__dirname, 'green-collection');
 /** удалять ли исходную папку */
-const deleteSrc = args[2] !== 'false';
+const deleteSrc = args[2] === 'true';
 /** перемещает файлы */
 const moveFile = (from, to) => {
   if (!fs.existsSync(to)) {
     fs.linkSync(from, to);
   }
-  fs.unlinkSync(from);
+  if (deleteSrc) {
+    fs.unlinkSync(from);
+  }
 };
 /** читает папку */
 const readDir = (pathDir) => {
@@ -59,5 +61,5 @@ readDir(pathBaseDir);
 if (deleteSrc) {
   console.log(`Перемещение выполено из папки:\n\t ${pathBaseDir}\nв папку:\n\t ${pathCollectionDir}\nИсходная папка удалена`);
 } else {
-  console.log(`Перемещение выполено из папки:\n\t ${pathBaseDir}\nв папку:\n\t ${pathCollectionDir}`);
+  console.log(`Копирование выполено из папки:\n\t ${pathBaseDir}\nв папку:\n\t ${pathCollectionDir}`);
 }
