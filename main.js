@@ -6,7 +6,7 @@ const pathBaseDir = args[0] || path.join(__dirname, 'green.2');
 /** путь папки, где будут лежать файлы */
 const pathCollectionDir = args[1] || path.join(__dirname, 'green-collection');
 /** удалять ли исходную папку */
-const deleteSrc = args[2];
+const deleteSrc = args[2] !== 'false';
 /** перемещает файлы */
 const moveFile = (from, to) => {
   if (!fs.existsSync(to)) {
