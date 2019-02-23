@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('mz/fs');
 const path = require('path');
 const args = process.argv.slice(2);
 /** путь папки, где лежат файлы */
@@ -7,57 +7,83 @@ const pathBaseDir = args[0] || path.join(__dirname, 'green.2');
 const pathCollectionDir = args[1] || path.join(__dirname, 'green-collection');
 /** удалять ли исходную папку */
 const deleteSrc = args[2];
-/** перемещает файлы */
-const moveFile = (from, to) => {
-  if (!fs.existsSync(to)) {
-    fs.linkSync(from, to);
-  }
-  fs.unlinkSync(from);
-};
 /** читает папку */
 const readDir = (pathDir) => {
-  /** все файлы и папки читаемой папки */
-  let files = fs.readdirSync(pathDir);
+  let arrFiles = [];
+  let arrPathFiles = [];
+  return fs.readdir(pathDir)
+    .then((files) => { // вернет все пути папок и файлов
+      arrFiles = files;
+      arrPathFiles = files.map((file) => path.join(pathDir, file));
+      return arrPathFiles;
+    })
+    .then((stats) => { // вернет статистику для каждой папки и файла
+      let arr = stats.map((stat) => fs.stat(stat));
+      return Promise.all(arr);
+    })
+    .then((data) => {
+      let arr = data.map((elem, index) => {
+        if (elem.isFile()) {
+          let dirName = path.join(pathCollectionDir, arrFiles[index][0].toUpperCase());
+          return fs.exists(dirName);
+        } else {
+          return readDir(arrPathFiles[index]);
+        }
+      });
+      return Promise.all(arr);
+    })
+    .then((data) => {
+      let arr = data.map((elem, index) => {
+        let dirName = path.join(pathCollectionDir, arrFiles[index][0].toUpperCase());
+        if (!elem) {
+          return fs.mkdir(dirName);
+        }
+      });
+      return Promise.all(arr);
+    })
+    .then((data) => {
+      let arr = data.map((elem, index) => {
+        let fileName = path.join(pathCollectionDir, arrFiles[index][0].toUpperCase(), arrFiles[index]);
+        return fs.exists(fileName);
+      });
+      return Promise.all(arr);
+    })
+    .then((data) => {
+      let arr = data.map((elem, index) => {
+        let fileName = path.join(pathCollectionDir, arrFiles[index][0].toUpperCase(), arrFiles[index]);
+        if (!elem) {
+          return fs.link(arrPathFiles[index], fileName);
+        } else {
+          return fs.unlink(arrPathFiles[index]);
+        }
+      });
+      return Promise.all(arr);
+    })
+    .then((data) => {
+      let arr = data.map((elem, index) => {
+        return fs.unlink(arrPathFiles[index]);
+      });
+      return Promise.all(arr);
+    })
+    .then((data) => {
+      let arr = data.map((elem, index) => {
+        return fs.rmdir(arrPathFiles[index]);
+      });
+      return Promise.all(arr);
+    });
+};
 
-  files.forEach(file => {
-    /** путь рассматриваемого файла\папки */
-    let pathCurrent = path.join(pathDir, file);
-    /** данные о рассматриваемом файле\папке */
-    let state = fs.statSync(pathCurrent);
-
-    if (state.isFile()) {
-      /** путь создаваемой папки по первой букве имени */
-      let dirName = path.join(pathCollectionDir, file[0].toUpperCase());
-      /** путь копируемого файла по первой букве имени */
-      let fileName = path.join(pathCollectionDir, file[0].toUpperCase(), file);
-
-      if (!fs.existsSync(dirName)) {
-        fs.mkdirSync(dirName);
-      }
-      moveFile(pathCurrent, fileName);
+fs.exists(pathCollectionDir)
+  .then((exists) => {
+    if (!exists) {
+      return fs.mkdir(pathCollectionDir);
+    }
+  })
+  .then(() => readDir(pathBaseDir))
+  .then(() => {
+    if (deleteSrc) {
+      console.log(`Перемещение выполено из папки:\n\t ${pathBaseDir}\nв папку:\n\t ${pathCollectionDir}\nИсходная папка удалена`);
     } else {
-      readDir(pathCurrent);
+      console.log(`Перемещение выполено из папки:\n\t ${pathBaseDir}\nв папку:\n\t ${pathCollectionDir}`);
     }
   });
-  if (deleteSrc) {
-    removeDir(pathDir);
-  }
-};
-
-/** удаляет папку */
-const removeDir = (path) => {
-  fs.rmdirSync(path);
-};
-
-let isExistsCollectionDir = fs.existsSync(pathCollectionDir);
-
-if (!isExistsCollectionDir) {
-  fs.mkdirSync(pathCollectionDir);
-}
-
-readDir(pathBaseDir);
-if (deleteSrc) {
-  console.log(`Перемещение выполено из папки:\n\t ${pathBaseDir}\nв папку:\n\t ${pathCollectionDir}\nИсходная папка удалена`);
-} else {
-  console.log(`Перемещение выполено из папки:\n\t ${pathBaseDir}\nв папку:\n\t ${pathCollectionDir}`);
-}
